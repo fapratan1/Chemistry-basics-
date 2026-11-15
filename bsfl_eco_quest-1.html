@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หนอนน้อยพิทักษ์ชุมชน | BSFL Eco Quest</title>
+<style>
+:root{--green:#237a50;--deep:#15583a;--cream:#fff8e8;--ink:#244438;--gold:#ffc857}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#dff5d9,#fff3d1);font-family:system-ui,"Tahoma",sans-serif;color:var(--ink)}
+header{padding:14px 18px;text-align:center;background:#ffffffc9;border-bottom:3px solid #b9dfb0}
+h1{margin:0;color:var(--deep);font-size:clamp(21px,4vw,32px)}header p{margin:4px 0 0;font-size:14px}
+.wrap{max-width:1100px;margin:14px auto;padding:0 12px}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.stat{background:#fff;border:2px solid #c5e2bb;border-radius:14px;padding:9px 12px;box-shadow:0 3px 0 #b4d4a8}
+.stat strong{display:block;font-size:17px}.stat small{font-size:12px;color:#557466}
+.meter{height:9px;background:#e7eee2;border-radius:9px;overflow:hidden;margin-top:5px}.fill{height:100%;width:0;background:#5fbd69;transition:width .2s}
+.gamebox{position:relative;background:#bde7a8;border:4px solid #fff;border-radius:18px;overflow:hidden;box-shadow:0 8px 25px #477c4930}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#163c2eaa;padding:18px}
+.panel{background:#fff9e9;border:3px solid #fff;border-radius:20px;padding:22px;max-width:440px;text-align:center;box-shadow:0 8px 30px #173d2d55}
+.panel h2{margin:0 0 8px;color:var(--deep)}.panel p{line-height:1.55}.hidden{display:none!important}
+button{border:0;border-radius:12px;padding:10px 14px;font-weight:800;background:#2c8b57;color:white;cursor:pointer;box-shadow:0 3px 0 #17633b;font-size:14px}
+button:hover{filter:brightness(1.06);transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.controls .push{margin-left:auto}.secondary{background:#e5f2df;color:#225b3d;box-shadow:0 3px 0 #b9d4ad}
+.shop{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.shop button{background:#fff;color:#27583d;border:2px solid #c5e2bb;box-shadow:0 3px 0 #b4d4a8;text-align:left;min-height:74px}
+.shop button span{display:block;font-size:12px;font-weight:500;color:#60796b;margin-top:4px}
+.hint{font-size:13px;background:#fff9e8;border-radius:12px;padding:10px 12px;line-height:1.5}
+.touch{display:none;justify-content:center;gap:8px;margin:10px 0}.touch button{width:52px;height:48px;font-size:20px;padding:0;background:#397c56}
+footer{text-align:center;padding:12px;font-size:12px;color:#567263}
+@media(max-width:700px){.hud{grid-template-columns:repeat(2,1fr)}.shop{grid-template-columns:repeat(2,1fr)}.touch{display:flex}.controls button{flex:1}.controls .push{margin-left:0}}
+</style>
+</head>
+<body>
+<header><h1>🐛 หนอนน้อยพิทักษ์ชุมชน</h1><p>BSFL Eco Quest · กินเศษอาหาร เปลี่ยนเป็นปุ๋ย เติมสีเขียวให้เมือง!</p></header>
+<div class="wrap">
+ <section class="hud">
+  <div class="stat">🍽️ ความอิ่ม <strong id="fullText">0 / 100</strong><div class="meter"><div class="fill" id="fullBar"></div></div></div>
+  <div class="stat">🪙 เงินทุน <strong id="coins">0</strong><small>ขายปุ๋ยเพื่ออัปเกรด</small></div>
+  <div class="stat">🌳 เมืองสีเขียว <strong id="greenText">0%</strong><div class="meter"><div class="fill" id="greenBar"></div></div></div>
+  <div class="stat">💩 ปุ๋ยพร้อมใช้ <strong id="frass">0 ถุง</strong><small id="levelText">เลเวล 1 · ทีม 0</small></div>
+ </section>
+ <div class="gamebox">
+  <canvas id="game" width="960" height="540" aria-label="สนามเกมหนอนน้อย"></canvas>
+  <div class="overlay" id="startOverlay"><div class="panel">
+   <h2>🌱 ภารกิจคืนชีวิตให้ชุมชน</h2>
+   <p>พาหนอนน้อยไปกินเศษอาหารจากร้านอาหาร ตลาด และถังขยะ ระวังพลาสติกกับสารเคมี! เมื่ออิ่มแล้วกด <b>ขับถ่ายปุ๋ย</b> เพื่อนำไปขายหรือปลูกต้นไม้</p>
+   <p><b>วิธีเล่น:</b> WASD / ปุ่มลูกศร หรือแตะ/คลิกตำแหน่งที่ต้องการเดิน</p>
+   <button id="startBtn">เริ่มภารกิจ ▶</button>
+  </div></div>
+  <div class="overlay hidden" id="winOverlay"><div class="panel">
+   <h2>🏆 เมืองเขียวครบ 100% แล้ว!</h2><p>ยอดเยี่ยม! หนอนน้อยช่วยเปลี่ยนเศษอาหารให้เป็นทรัพยากร และทำให้ชุมชนน่าอยู่ขึ้น</p>
+   <button id="againBtn">เล่นอีกครั้ง ↻</button>
+  </div></div>
+ </div>
+ <div class="controls">
+  <button id="poopBtn">💩 ขับถ่ายปุ๋ย (Space)</button>
+  <button id="plantBtn">🌳 ปลูกต้นไม้ 1 ถุง</button>
+  <button class="secondary" id="sellBtn">🪙 ขายปุ๋ยทั้งหมด</button>
+  <button class="secondary push" id="soundBtn">🔊 เสียง: เปิด</button>
+ </div>
+ <div class="touch" aria-label="ปุ่มควบคุมบนมือถือ">
+  <button data-dir="up">▲</button><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button>
+ </div>
+ <h3>🛠️ โรงงานอัปเกรด</h3>
+ <div class="shop">
+  <button id="speedBtn">⚡ เพิ่มความเร็ว <span id="speedCost">ราคา 25 🪙</span></button>
+  <button id="bellyBtn">🍈 เพิ่มความจุท้อง <span id="bellyCost">ราคา 35 🪙</span></button>
+  <button id="valueBtn">💎 เพิ่มมูลค่าปุ๋ย <span id="valueCost">ราคา 45 🪙</span></button>
+  <button id="teamBtn">🐛 จ้างหนอนเพื่อน <span id="teamCost">ราคา 60 🪙 · เก็บอาหารอัตโนมัติ</span></button>
+ </div>
+ <div class="hint"><b>เคล็ดลับ:</b> 🍎 เศษผักผลไม้ +15 · 🍚 เศษข้าว +10 · 🥬 เศษอาหาร +20 · 🧴 พลาสติก/☣️ สารเคมีทำให้มึนงง 3 วินาที · นำปุ๋ยไปขายเพื่อหาเงิน หรือปลูกต้นไม้เพื่อเพิ่ม Green City</div>
+</div>
+<footer>เกมจำลองเพื่อการเรียนรู้เรื่องการจัดการขยะอินทรีย์ด้วยหนอนแมลงวันลาย (BSFL)</footer>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const W=960,H=540;
+let running=false, sound=true, audio=null, last=0, keys={}, pointer=null, dizzy=0, spawnClock=0, helperClock=0;
+let player, foods=[], hazards=[], trees=[], helpers=[], coins=0, frass=0, green=0;
+let speedLv=0, bellyLv=0, valueLv=0, teamLv=0, foodEaten=0;
+const rand=(a,b)=>Math.random()*(b-a)+a;
+function beep(freq=500,dur=.08,type='sine'){if(!sound)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.value=.045;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur)}catch(e){}}
+function reset(){coins=0;frass=0;green=0;speedLv=bellyLv=valueLv=teamLv=0;foodEaten=0;dizzy=0;foods=[];hazards=[];trees=[];helpers=[];player={x:W/2,y:H/2,r:19,full:0,dir:0};for(let i=0;i<22;i++)spawnFood();for(let i=0;i<9;i++)spawnHazard();updateUI()}
+function spawnFood(){const types=[['🍎',15],['🍚',10],['🥬',20],['🥕',15],['🍌',15]];let t=types[Math.floor(Math.random()*types.length)];foods.push({x:rand(55,W-55),y:rand(100,H-45),emoji:t[0],value:t[1],r:15})}
+function spawnHazard(){hazards.push({x:rand(55,W-55),y:rand(110,H-45),emoji:Math.random()<.6?'🧴':'☣️',r:17})}
+function updateUI(){
+ $('fullText').textContent=Math.floor(player.full)+' / '+capacity();$('fullBar').style.width=(player.full/capacity()*100)+'%';
+ $('coins').textContent=coins;$('greenText').textContent=green+'%';$('greenBar').style.width=green+'%';$('frass').textContent=frass+' ถุง';
+ $('levelText').textContent='เลเวล '+(1+speedLv+bellyLv+valueLv)+' · ทีม '+teamLv;
+ $('speedCost').textContent='ราคา '+(25+speedLv*25)+' 🪙';$('bellyCost').textContent='ราคา '+(35+bellyLv*35)+' 🪙';
+ $('valueCost').textContent='ราคา '+(45+valueLv*45)+' 🪙';$('teamCost').textContent='ราคา '+(60+teamLv*60)+' 🪙 · เก็บอาหารอัตโนมัติ';
+ $('plantBtn').disabled=frass<1;$('sellBtn').disabled=frass<1;$('poopBtn').disabled=player.full<25;
+}
+function capacity(){return 100+bellyLv*50}
+function makeFrass(){if(player.full<25)return;let bags=Math.max(1,Math.floor(player.full/35))*(1+Math.floor(bellyLv/2));frass+=bags;player.full=0;beep(240,.16,'triangle');updateUI();toast('ได้ปุ๋ยอินทรีย์ '+bags+' ถุง!')}
+let toastMsg='',toastTime=0;function toast(s){toastMsg=s;toastTime=1.7}
+function sell(){if(!frass)return;let earned=frass*(10+valueLv*5);coins+=earned;frass=0;beep(760,.12);toast('ขายปุ๋ยสำเร็จ +'+earned+' เหรียญ');updateUI()}
+function plant(){if(!frass||green>=100)return;frass--;green=Math.min(100,green+5);trees.push({x:rand(55,W-55),y:rand(125,H-55),size:rand(.8,1.2)});beep(620,.14,'sine');updateUI();if(green===100){running=false;$('winOverlay').classList.remove('hidden')}}
+function buy(kind){let cost={speed:25+speedLv*25,belly:35+bellyLv*35,value:45+valueLv*45,team:60+teamLv*60}[kind];if(coins<cost){toast('เหรียญไม่พอ! ลองขายปุ๋ยก่อน');beep(130,.1);return}coins-=cost;if(kind==='speed')speedLv++;if(kind==='belly')bellyLv++;if(kind==='value')valueLv++;if(kind==='team'){teamLv++;helpers.push({x:rand(100,W-100),y:rand(130,H-80),phase:rand(0,6)})}beep(880,.12);updateUI()}
+function eat(item){player.full=Math.min(capacity(),player.full+item.value);foodEaten++;beep(500+item.value*10,.07);updateUI()}
+function move(dt){
+ let dx=0,dy=0;if(keys.ArrowLeft||keys.a||keys.A)dx--;if(keys.ArrowRight||keys.d||keys.D)dx++;if(keys.ArrowUp||keys.w||keys.W)dy--;if(keys.ArrowDown||keys.s||keys.S)dy++;
+ if(pointer){let px=pointer.x-player.x,py=pointer.y-player.y,d=Math.hypot(px,py);if(d>8){dx=px/d;dy=py/d}else pointer=null}
+ let len=Math.hypot(dx,dy);if(len){dx/=len;dy/=len;player.dir=Math.atan2(dy,dx)}
+ let v=(145+speedLv*38)*(dizzy>0?.45:1);player.x=Math.max(25,Math.min(W-25,player.x+dx*v*dt));player.y=Math.max(90,Math.min(H-25,player.y+dy*v*dt));
+ if(dizzy>0)dizzy-=dt;
+ for(let i=foods.length-1;i>=0;i--){let f=foods[i];if(Math.hypot(f.x-player.x,f.y-player.y)<player.r+f.r){eat(f);foods.splice(i,1);spawnFood()}}
+ for(let i=hazards.length-1;i>=0;i--){let h=hazards[i];if(Math.hypot(h.x-player.x,h.y-player.y)<player.r+h.r){dizzy=3;hazards.splice(i,1);spawnHazard();toast('มึนงง! ระวังขยะอันตราย');beep(110,.25,'sawtooth')}}
+ helpers.forEach((h,index)=>{h.phase+=dt*2.4;let target=foods.reduce((best,f)=>!best||Math.hypot(f.x-h.x,f.y-h.y)<Math.hypot(best.x-h.x,best.y-h.y)?f:best,null);if(target){let d=Math.hypot(target.x-h.x,target.y-h.y)||1;h.x+=(target.x-h.x)/d*85*dt;h.y+=(target.y-h.y)/d*85*dt;if(d<24){foods.splice(foods.indexOf(target),1);spawnFood();coins+=2;toast('เพื่อนหนอนเก็บเศษอาหาร +2 🪙')}}});
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ // ground
+ ctx.fillStyle='#bce7a5';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#d8efb9';for(let x=15;x<W;x+=48)for(let y=105;y<H;y+=42){ctx.beginPath();ctx.arc(x+(y%3)*3,y,2,0,Math.PI*2);ctx.fill()}
+ // community buildings
+ drawBuilding(25,18,190,75,'🍜','ร้านอาหาร','#f7c77d');drawBuilding(385,18,190,75,'🥕','ตลาดสด','#f2a9a0');drawBuilding(745,18,190,75,'🗑️','จุดคัดแยก','#a9c9e8');
+ // paths
+ ctx.strokeStyle='#e8d9a8';ctx.lineWidth=34;ctx.beginPath();ctx.moveTo(0,310);ctx.bezierCurveTo(250,260,650,390,960,300);ctx.stroke();
+ trees.forEach(t=>{ctx.font=(35*t.size)+'px sans-serif';ctx.textAlign='center';ctx.fillText('🌳',t.x,t.y);});
+ foods.forEach(f=>{ctx.font='27px sans-serif';ctx.textAlign='center';ctx.fillText(f.emoji,f.x,f.y+9)});
+ hazards.forEach(h=>{ctx.font='29px sans-serif';ctx.textAlign='center';ctx.fillText(h.emoji,h.x,h.y+9)});
+ helpers.forEach(h=>drawWorm(h.x,h.y,Math.sin(h.phase)*.15,'#83b9d9',.72));
+ drawWorm(player.x,player.y,player.dir,'#7dba42',1);
+ // labels
+ ctx.font='bold 14px system-ui';ctx.fillStyle='#386344';ctx.textAlign='left';ctx.fillText('เก็บเศษอาหาร 🍎 🍚 🥬',18,125);
+ ctx.fillStyle='#a04435';ctx.fillText('หลีกเลี่ยง 🧴 ☣️',18,148);
+ if(dizzy>0){ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText('💫',player.x,player.y-34)}
+ if(toastTime>0){ctx.fillStyle='#ffffffdf';roundRect(W/2-170, H-48,340,34,12);ctx.fillStyle='#24583d';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.fillText(toastMsg,W/2,H-26)}
+}
+function drawBuilding(x,y,w,h,emoji,label,color){ctx.fillStyle=color;roundRect(x,y,w,h,13);ctx.fillStyle='#fff8e8';roundRect(x+8,y+8,w-16,h-16,9);ctx.font='25px sans-serif';ctx.textAlign='center';ctx.fillText(emoji,x+w/2,y+35);ctx.font='bold 14px system-ui';ctx.fillStyle='#385846';ctx.fillText(label,x+w/2,y+61)}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function drawWorm(x,y,a,color,scale=1){ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.scale(scale,scale);for(let i=3;i>=0;i--){ctx.fillStyle=i%2?'#94cf5b':color;ctx.beginPath();ctx.arc(-i*10,Math.sin(i*.8)*2,12-i*.7,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#4f8b36';ctx.lineWidth=1.5;ctx.stroke()}ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(9,-5,4,0,Math.PI*2);ctx.arc(9,5,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#24452e';ctx.beginPath();ctx.arc(10,-5,1.8,0,Math.PI*2);ctx.arc(10,5,1.8,0,Math.PI*2);ctx.fill();ctx.restore()}
+function frame(t){let dt=Math.min((t-last)/1000||0,.04);last=t;if(running){move(dt);spawnClock+=dt;helperClock+=dt;if(spawnClock>2.4&&foods.length<28){spawnFood();spawnClock=0}if(helperClock>1.5&&teamLv){coins+=teamLv;helperClock=0}if(toastTime>0)toastTime-=dt;draw();updateUI()}requestAnimationFrame(frame)}
+function start(){reset();running=true;$('startOverlay').classList.add('hidden');$('winOverlay').classList.add('hidden');last=performance.now()}
+$('startBtn').onclick=start;$('againBtn').onclick=start;
+$('poopBtn').onclick=makeFrass;$('plantBtn').onclick=plant;$('sellBtn').onclick=sell;
+$('speedBtn').onclick=()=>buy('speed');$('bellyBtn').onclick=()=>buy('belly');$('valueBtn').onclick=()=>buy('value');$('teamBtn').onclick=()=>buy('team');
+$('soundBtn').onclick=()=>{sound=!sound;$('soundBtn').textContent=sound?'🔊 เสียง: เปิด':'🔇 เสียง: ปิด';if(sound)beep()};
+window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key]=true;if(e.code==='Space')makeFrass()});
+window.addEventListener('keyup',e=>keys[e.key]=false);
+function canvasPoint(e){let r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+canvas.addEventListener('pointerdown',e=>{if(running)pointer=canvasPoint(e)});canvas.addEventListener('pointermove',e=>{if(e.buttons&&running)pointer=canvasPoint(e)});canvas.addEventListener('pointerup',()=>pointer=null);
+document.querySelectorAll('[data-dir]').forEach(b=>{let k={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'}[b.dataset.dir];b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+reset();draw();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
